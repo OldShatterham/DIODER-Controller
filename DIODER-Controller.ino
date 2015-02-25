@@ -14,6 +14,9 @@ static int BLUE_PIN = 4;   //Standard: 4
 static int FADING_PIN_1 = 0;  //Standard: 0
 static int FADING_PIN_2 = 1;  //Standard: 1
 
+///Value at which full brightness is reached; Possible values reach from 0 to 255
+static int full_brightness = 200;
+
 ///Describe current values of the ouputs; values reach from 0 to 255:
 int red = 0;
 int green = 0;
@@ -34,7 +37,7 @@ long currentTimestamp;
 /**
  * Information for the execution of an self-changing effect
  * effect and effect_max should only be updated together.
- *     sEffect:       pointer to the effect function
+ *     sEffect:       String of the effect function
  *     int sEffect_max:   max timestamp of the effect
  *     double sEffect_speed: speed in which the effect will be updated. 0.25f means one update every 40 ms; 2.0f means 2 updates
  *                           every 10 ms
@@ -58,7 +61,8 @@ void setup() {
   startTimestamp = millis();
   
   //Set effect to be executed:
-  setSEffect("effect_gradient", 764, 0.25);
+  //setSEffect("effect_gradient", 764, 0.25);
+  setSEffect("effect_breathing", 1000, 5);
 }
 
 /**
@@ -69,26 +73,32 @@ void setup() {
 void loop() {
   currentTimestamp = millis();
   
-  //Self-changing effect:
-  if(sEf_func == "effect_gradient") {
-    //Reset timestamp if bigger than max timestamp:
-    if(sEf_timestamp > sEf_max_ts) {
-      sEf_timestamp = 0;
+  ///Self-changing effect:
+  //Reset timestamp if bigger than max timestamp:
+  if(sEf_timestamp > sEf_max_ts) {
+    sEf_timestamp = 0;
+  }
+  
+  if((float)sEf_rel_speed < 1.0f) {
+    int msPerExec = (int)(1 / sEf_rel_speed);
+    if((currentTimestamp - startTimestamp) % msPerExec == 0) {
+      if(sEf_func == "effect_gradient")
+        effect_gradient(sEf_timestamp);
+      else
+        effect_sinus(sEf_timestamp);
+        
+      sEf_timestamp++;
     }
-    
-    if((float)sEf_rel_speed < 1.0f) {
-      int msPerExec = (int)(1 / sEf_rel_speed);
-      if((currentTimestamp - startTimestamp) % msPerExec == 0) {
+  } else {
+    for(int i = 0; i < sEf_rel_speed; i++) {
+      if(sEf_func == "effect_gradient")
         effect_gradient(sEf_timestamp);
-        sEf_timestamp++;
-      }
-    } else {
-      for(int i = 0; i < sEf_rel_speed; i++) {
-        effect_gradient(sEf_timestamp);
-        sEf_timestamp++;
-        if(sEf_timestamp > sEf_max_ts) {
-          sEf_timestamp = 0;
-        }
+      else
+        effect_sinus(sEf_timestamp);
+      
+      sEf_timestamp++;
+      if(sEf_timestamp > sEf_max_ts) {
+        sEf_timestamp = 0;
       }
     }
   }
@@ -347,4 +357,19 @@ void setSEffect(String func, int max_ts, double rel_speed) {
        }
      }
    }
+ } 
+ 
+ /**
+  * This effect will turn the brightness of all channels up and down dynamically like a sinus curve
+  * 
+  * MAX TIMESTAMP: 1000
+  */
+ void effect_sinus(int interval) {
+   int sinus_value = (int)(full_brightness * (0.5 + sin((2.0 * 3.14159 * (float)interval) / 1000.0) / 2.0));
+   
+   if(debugMode) {
+     Serial.print("Calculated value for breathing effect: ");
+     Serial.println(sinus_value);
+   }
+   setColor(sinus_value, sinus_value, sinus_value);
  }
