@@ -8,9 +8,9 @@
 ///Set to true to get more information over serial
 boolean debugMode = false;
 
-static int RED_PIN = 2;    //Standard: 2
-static int GREEN_PIN = 3;  //Standard: 3
-static int BLUE_PIN = 4;   //Standard: 4
+static int RED_PIN = 3;    //Standard: 3
+static int GREEN_PIN = 5;  //Standard: 5
+static int BLUE_PIN = 6;   //Standard: 6
 static int FADING_PIN_1 = 0;  //Standard: 0
 static int FADING_PIN_2 = 1;  //Standard: 1
 
@@ -52,7 +52,7 @@ int sEf_timestamp = 0;
 
 void setup() {
   //Set up serial:
-  Serial.begin(115200); 
+  Serial.begin(115200);  //Baud rate
   Serial.println("Program started");
   
   //Set up the system:
@@ -61,8 +61,7 @@ void setup() {
   startTimestamp = millis();
   
   //Set effect to be executed:
-  //setSEffect("effect_gradient", 764, 0.25);
-  setSEffect("effect_breathing", 1000, 5);
+  setSEffect("effect_gradient", 764, 0.25);
 }
 
 /**
