@@ -8,6 +8,8 @@
 ///Set to true to get more information over serial
 boolean debugMode = false;
 
+String command = "";
+
 static int RED_PIN = 3;    //Standard: 3
 static int GREEN_PIN = 5;  //Standard: 5
 static int BLUE_PIN = 6;   //Standard: 6
@@ -106,7 +108,7 @@ void loop() {
   if(somethingChanged) {
     //Dynamic effect updates here
     //  Change effect speed dependent on fading_value_1:
-    sEf_rel_speed = fading_value_1 * 0.0392156863;
+    //sEf_rel_speed = fading_value_1 * 0.0392156863;
     //  Change brightness flag dependent on fading_value_2:
     //brightness = fading_value_2 / 255.0f;
     
@@ -147,15 +149,19 @@ void loop() {
  */
 void checkSerial() {
   static int MAXLENGTH = 50;
-  String command = "";
   char recData[MAXLENGTH];
   
+  //Clear recData[]:
+  for(int i = 0; i < MAXLENGTH; i++)
+    recData[i] = 0;
+  
   //Get chars of recieved data:
-  int index;  
+  int index = 0;  
   while(Serial.available() > 0 && index < MAXLENGTH) {
     char inChar = Serial.read();
     recData[index] = inChar;
     index++;
+        
     if(debugMode) {
       Serial.print("    Processed char '");
       Serial.print(inChar);
@@ -166,12 +172,23 @@ void checkSerial() {
   
   //Store chars in one String
   for(int i = 0; i < index; i++) {
-    char currentChar = recData[i];
-    if((String)((int)currentChar) != "")
+    if(recData[i] != NULL) {
+      char currentChar = recData[i];
       command += currentChar;
+      
+      if(debugMode) {
+        Serial.print("Current value of 'command': ");
+        Serial.println(command);
+      }
+    }
   }
   
-  if(command != "") {
+  //If command ends with a new line character (ASCII value 13)
+  int lastChar = (int)(command.charAt(command.length() - 1));
+  if(lastChar == 10) {
+    //Remove last character in command as it is hindering:
+    command.remove(command.length() - 1);
+    
     Serial.print("[INPUT] ");
     Serial.println(command);
     
@@ -231,7 +248,7 @@ void checkSerial() {
       
       Serial.print("Setting self-changing effect to '");
       Serial.print(newFunc);
-      Serial.print("', with max value of ");
+      Serial.print("', with max value of '");
       Serial.print(newMax_ts);
       Serial.print("' and speed of ");
       Serial.print(newRel_speed);
@@ -239,6 +256,9 @@ void checkSerial() {
       
       setSEffect(newFunc, newMax_ts, newRel_speed);
     }
+    
+    //Reset command:
+    command = "";
   }
 }
 
