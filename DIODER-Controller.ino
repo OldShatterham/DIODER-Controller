@@ -63,7 +63,7 @@ void setup() {
   startTimestamp = millis();
   
   //Set effect to be executed:
-  setSEffect("effect_gradient", 764, 0.5);
+  setSEffect("effect_gradient", 764, 0.25);
 }
 
 /**
