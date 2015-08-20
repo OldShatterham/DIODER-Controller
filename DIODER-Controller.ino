@@ -8,6 +8,8 @@
 ///Set to true to get more information over serial
 boolean debugMode = false;
 
+boolean selfChangingEnabled = true;
+
 String command = "";
 
 static int RED_PIN = 3;    //Standard: 3
@@ -61,6 +63,10 @@ void setup() {
   somethingChanged = true;
   setColor(128, 128, 128);
   startTimestamp = millis();
+
+  //Setting some flags:
+  debugMode = false;
+  selfChangingEnabled = true;
   
   //Set effect to be executed:
   setSEffect("effect_gradient", 764, 0.5);
@@ -73,33 +79,35 @@ void setup() {
  */
 void loop() {
   currentTimestamp = millis();
-  
-  ///Self-changing effect:
-  //Reset timestamp if bigger than max timestamp:
-  if(sEf_timestamp > sEf_max_ts) {
-    sEf_timestamp = 0;
-  }
-  
-  if((float)sEf_rel_speed < 1.0f) {
-    int msPerExec = (int)(1 / sEf_rel_speed);
-    if((currentTimestamp - startTimestamp) % msPerExec == 0) {
-      if(sEf_func == "effect_gradient")
-        effect_gradient(sEf_timestamp);
-      else
-        effect_sinus(sEf_timestamp);
-        
-      sEf_timestamp++;
+
+  if(selfChangingEnabled) {
+    ///Self-changing effect:
+    //Reset timestamp if bigger than max timestamp:
+    if(sEf_timestamp > sEf_max_ts) {
+      sEf_timestamp = 0;
     }
-  } else {
-    for(int i = 0; i < sEf_rel_speed; i++) {
-      if(sEf_func == "effect_gradient")
-        effect_gradient(sEf_timestamp);
-      else
-        effect_sinus(sEf_timestamp);
-      
-      sEf_timestamp++;
-      if(sEf_timestamp > sEf_max_ts) {
-        sEf_timestamp = 0;
+    
+    if((float)sEf_rel_speed < 1.0f) {
+      int msPerExec = (int)(1 / sEf_rel_speed);
+      if((currentTimestamp - startTimestamp) % msPerExec == 0) {
+        if(sEf_func == "effect_gradient")
+          effect_gradient(sEf_timestamp);
+        else
+          effect_sinus(sEf_timestamp);
+          
+        sEf_timestamp++;
+      }
+    } else {
+      for(int i = 0; i < sEf_rel_speed; i++) {
+        if(sEf_func == "effect_gradient")
+          effect_gradient(sEf_timestamp);
+        else
+          effect_sinus(sEf_timestamp);
+        
+        sEf_timestamp++;
+        if(sEf_timestamp > sEf_max_ts) {
+          sEf_timestamp = 0;
+        }
       }
     }
   }
@@ -193,7 +201,7 @@ void checkSerial() {
     Serial.println(command);
     
     //Cycle thorugh all commands:
-    String commands[] = {"help","debugMode","setColor([INT],[INT],[INT])","setSEffect([STRING],[INT],[DOUBLE])"};
+    String commands[] = {"help","debugMode","toggleSelfChanging","setColor([INT],[INT],[INT])","setSEffect([STRING],[INT],[DOUBLE])"};
     //  help
     if(command == "help") {
       for(int i = 0; i < (sizeof(commands) / sizeof(String)); i++) {
@@ -209,6 +217,16 @@ void checkSerial() {
       } else {
         debugMode = true;
         Serial.println("Enabled debug mode!");
+      }
+    }
+    //  toggleSelfChanging
+    if(command == "toggleSelfChanging") {
+      if(selfChangingEnabled) {
+        selfChangingEnabled = false;
+        Serial.println("Disabled self changing effects!");
+      } else {
+        selfChangingEnabled = true;
+        Serial.println("Enabled self changing effects!");
       }
     }
     //  setColor(int,int,int)
