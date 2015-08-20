@@ -12,5 +12,6 @@ Baud rate is 115200, commands have to end with a new line character (ASCII code 
 Available commands are:  
 	help									-	Prints out a list of all commands  
 	debugMode								-	Enables debug mode which provides dev info over serial  
+	toggleSelfChanging						-	Toggles the 'selfChangingEnabled' flag which, if disabled, pauses the current self changing effect
 	setColor([INT],[INT],[INT])				-	Sets the pin output color (values reaching from 0 to 255)  
 	setSEffect([STRING],[INT],[DOUBLE])		-	Sets the current self-changing effect, max timestamp and speed  
