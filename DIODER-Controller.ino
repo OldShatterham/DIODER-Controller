@@ -9,8 +9,11 @@
 boolean debugMode = false;
 
 boolean selfChangingEnabled = true;
+boolean fadingEnabled = false;
 
 String command = "";
+
+static int baudRate = 115200;   //Standard: 115200
 
 static int RED_PIN = 3;    //Standard: 3
 static int GREEN_PIN = 5;  //Standard: 5
@@ -56,7 +59,7 @@ int sEf_timestamp = 0;
 
 void setup() {
   //Set up serial:
-  Serial.begin(115200);  //Baud rate
+  Serial.begin(baudRate);  //Baud rate
   Serial.println("Program started");
   
   //Set up the system:
@@ -67,6 +70,7 @@ void setup() {
   //Setting some flags:
   debugMode = false;
   selfChangingEnabled = true;
+  fadingEnabled = false;
   
   //Set effect to be executed:
   setSEffect("effect_gradient", 764, 0.5);
@@ -123,28 +127,30 @@ void loop() {
     somethingChanged = false;
   }
   
+  if(fadingEnabled) {
   //Listeners:
   //  fading_value_1:
-  int read_value = analogRead(FADING_PIN_1);
-  if(abs((read_value / 4) - fading_value_1) > 2) {  //If change was big enough
-    analogWrite(13, read_value);
-    fading_value_1 = read_value / 4;
-    if(debugMode) {
-      Serial.print("[LISTENER] Fading value 1 changed to: ");
-      Serial.println(fading_value_1);
+    int read_value = analogRead(FADING_PIN_1);
+    if(abs((read_value / 4) - fading_value_1) > 2) {  //If change was big enough
+      analogWrite(13, read_value);
+      fading_value_1 = read_value / 4;
+      if(debugMode) {
+        Serial.print("[LISTENER] Fading value 1 changed to: ");
+        Serial.println(fading_value_1);
+      }
+      somethingChanged = true;
     }
-    somethingChanged = true;
-  }
-  //  fading_value_2:
-  read_value = analogRead(FADING_PIN_2);
-  if(abs((read_value / 4) - fading_value_2) > 2) {  //If change was big enough
-    analogWrite(13, read_value);
-    fading_value_2 = read_value / 4;
-    if(debugMode) {
-      Serial.print("[LISTENER] Fading value 2 changed to: ");
-      Serial.println(fading_value_2);
+    //  fading_value_2:
+    read_value = analogRead(FADING_PIN_2);
+    if(abs((read_value / 4) - fading_value_2) > 2) {  //If change was big enough
+      analogWrite(13, read_value);
+      fading_value_2 = read_value / 4;
+      if(debugMode) {
+        Serial.print("[LISTENER] Fading value 2 changed to: ");
+        Serial.println(fading_value_2);
+      }
+      somethingChanged = true;
     }
-    somethingChanged = true;
   }
   
   //Meta stuff:
@@ -201,7 +207,7 @@ void checkSerial() {
     Serial.println(command);
     
     //Cycle thorugh all commands:
-    String commands[] = {"help","debugMode","toggleSelfChanging","setColor([INT],[INT],[INT])","setSEffect([STRING],[INT],[DOUBLE])"};
+    String commands[] = {"help","debugMode","toggleSelfChanging","toggleFading","setColor([INT],[INT],[INT])","setSEffect([STRING],[INT],[DOUBLE])"};
     //  help
     if(command == "help") {
       for(int i = 0; i < (sizeof(commands) / sizeof(String)); i++) {
@@ -227,6 +233,16 @@ void checkSerial() {
       } else {
         selfChangingEnabled = true;
         Serial.println("Enabled self changing effects!");
+      }
+    }
+    //  toggleFading
+    if(command == "toggleFading") {
+      if(selfChangingEnabled) {
+        fadingEnabled = false;
+        Serial.println("Disabled fading!");
+      } else {
+        fadingEnabled = true;
+        Serial.println("Enabled fading!");
       }
     }
     //  setColor(int,int,int)
