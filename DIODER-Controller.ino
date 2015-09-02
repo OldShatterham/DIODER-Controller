@@ -237,7 +237,7 @@ void checkSerial() {
     }
     //  toggleFading
     if(command == "toggleFading") {
-      if(selfChangingEnabled) {
+      if(fadingEnabled) {
         fadingEnabled = false;
         Serial.println("Disabled fading!");
       } else {
