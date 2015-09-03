@@ -11,6 +11,7 @@ boolean debugMode = false;
 boolean selfChangingEnabled = true;
 boolean fadingEnabled = false;
 
+boolean serialAvailable = false;
 String command = "";
 
 static int baudRate = 115200;   //Standard: 115200
@@ -60,7 +61,6 @@ int sEf_timestamp = 0;
 void setup() {
   //Set up serial:
   Serial.begin(baudRate);  //Baud rate
-  Serial.println("Program started");
   
   //Set up the system:
   somethingChanged = true;
@@ -154,7 +154,14 @@ void loop() {
   }
   
   //Meta stuff:
-  checkSerial();
+  if(Serial &&  serialAvailable == false) {
+    serialAvailable = true;
+    Serial.println("Serial connection established");
+    Serial.println("Welcome!");
+  }
+  if(serialAvailable) {
+    checkSerial();
+  }
   delay(10);
 }
 
@@ -197,9 +204,9 @@ void checkSerial() {
     }
   }
   
-  //If command ends with a new line character (ASCII value 13)
+  //If command ends with a carriage return character (ASCII value 13)
   int lastChar = (int)(command.charAt(command.length() - 1));
-  if(lastChar == 10) {
+  if(lastChar == 13) {
     //Remove last character in command as it is hindering:
     command.remove(command.length() - 1);
     
