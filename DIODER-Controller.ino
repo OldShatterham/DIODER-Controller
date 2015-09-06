@@ -5,27 +5,39 @@
  *  Copyright (kinda): © 2015 by BSM.
  */
 
-///Set to true to get more information over serial
+//Variables that toggle certain parts of the programm
 boolean debugMode = false;
-
 boolean selfChangingEnabled = true;
 boolean fadingEnabled = false;
 
+//Serial connection stuff:
 boolean serialAvailable = false;
 String command = "";
+String lastCommands[15];
+int connectionLost;
 
-static int baudRate = 115200;   //Standard: 115200
+//=====================================================
+//========== START OF VARIABLES FOR END-USER ==========
+//=====================================================
 
+static int baudRate = 19200;   //Standard: 19200
+
+//Pin config:
+static int SERIAL_AVAILABLE_PIN = 2;  //Standard: 2
 static int RED_PIN = 3;    //Standard: 3
 static int GREEN_PIN = 5;  //Standard: 5
 static int BLUE_PIN = 6;   //Standard: 6
 static int FADING_PIN_1 = 0;  //Standard: 0
 static int FADING_PIN_2 = 1;  //Standard: 1
 
-///Value at which full brightness is reached; Possible values reach from 0 to 255
+//Value at which full brightness is reached; Possible values reach from 0 to 255
 static int full_brightness = 200;
 
-///Describe current values of the ouputs; values reach from 0 to 255:
+//====================================================
+//========== END OF VARIABLES FOR END-USER ===========
+//====================================================
+
+//Describe current values of the ouputs; values reach from 0 to 255:
 int red = 0;
 int green = 0;
 int blue = 0;
@@ -63,6 +75,7 @@ void setup() {
   Serial.begin(baudRate);  //Baud rate
   
   //Set up the system:
+  pinMode(SERIAL_AVAILABLE_PIN, INPUT);
   somethingChanged = true;
   setColor(128, 128, 128);
   startTimestamp = millis();
@@ -74,6 +87,8 @@ void setup() {
   
   //Set effect to be executed:
   setSEffect("effect_gradient", 764, 0.5);
+
+  analogWrite(13, 0);
 }
 
 /**
@@ -132,7 +147,7 @@ void loop() {
   //  fading_value_1:
     int read_value = analogRead(FADING_PIN_1);
     if(abs((read_value / 4) - fading_value_1) > 2) {  //If change was big enough
-      analogWrite(13, read_value);
+      //analogWrite(13, read_value);
       fading_value_1 = read_value / 4;
       if(debugMode) {
         Serial.print("[LISTENER] Fading value 1 changed to: ");
@@ -143,7 +158,7 @@ void loop() {
     //  fading_value_2:
     read_value = analogRead(FADING_PIN_2);
     if(abs((read_value / 4) - fading_value_2) > 2) {  //If change was big enough
-      analogWrite(13, read_value);
+      //analogWrite(13, read_value);
       fading_value_2 = read_value / 4;
       if(debugMode) {
         Serial.print("[LISTENER] Fading value 2 changed to: ");
@@ -154,10 +169,26 @@ void loop() {
   }
   
   //Meta stuff:
-  if(Serial &&  serialAvailable == false) {
+  if(digitalRead(SERIAL_AVAILABLE_PIN) == HIGH &&  serialAvailable == false) {
     serialAvailable = true;
+    delay(400);
     Serial.println("Serial connection established");
     Serial.println("Welcome!");
+    Serial.println();
+    connectionLost = 0;
+  } else {
+    if(digitalRead(SERIAL_AVAILABLE_PIN) == LOW && serialAvailable == true) {
+      connectionLost++;
+      if(debugMode) {
+        Serial.print("Connection lost (");
+        Serial.print(connectionLost);
+        Serial.println(" times in total)!");
+      }
+      if(connectionLost > 25) {
+        serialAvailable = false;
+        signalError("Serial connection lost!");
+      }
+    }
   }
   if(serialAvailable) {
     checkSerial();
@@ -212,6 +243,7 @@ void checkSerial() {
     
     Serial.print("[INPUT] ");
     Serial.println(command);
+    Serial.println();
     
     //Cycle thorugh all commands:
     String commands[] = {"help","debugMode","toggleSelfChanging","toggleFading","setColor([INT],[INT],[INT])","setSEffect([STRING],[INT],[DOUBLE])"};
@@ -320,9 +352,9 @@ void signalError(String message) {
   
   //Blink LED 13 (onboard) 5 times
   for(int i = 0; i < 5; i++) {
-    digitalWrite(13, HIGH);
+    analogWrite(13, 255);
     delay(100);
-    digitalWrite(13, LOW);
+    analogWrite(13, 0);
     delay(100);
   }
 }

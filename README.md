@@ -8,7 +8,7 @@ This software is provided "as is" with no without any express or implied warrant
 Use the *_PIN fields to set the output/input pins.
 ---
 ###Serial connection:
-Baud rate is 115200, 8 data bits, 1 stop bit, no parity, no flow control; commands have to end with a carriage return character (ASCII code 13) to be processed.  
+Baud rate is 19200, 8 data bits, 1 stop bit, no parity, no flow control; commands have to end with a carriage return character (ASCII code 13) to be processed.  
 Available commands are:  
 	* **help**									-	Prints out a list of all commands  
 	* **debugMode**								-	Enables debug mode which provides dev info over serial  
