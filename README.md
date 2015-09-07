@@ -9,6 +9,8 @@ Use the *_PIN fields to set the output/input pins.
 ---
 ###Serial connection:
 Baud rate is 19200, 8 data bits, 1 stop bit, no parity, no flow control; commands have to end with a carriage return character (ASCII code 13) to be processed.  
+If you are using an Arduino Micro or Leonardo (or just want to use other serial pins if your board supports this, e.g. Arduino Mega 2560) you have to set SERIALCON to 'Serial1'; otherwise, set it to 'Serial'.  
+  
 Available commands are:  
 	* **help**									-	Prints out a list of all commands  
 	* **debugMode**								-	Enables debug mode which provides dev info over serial  
