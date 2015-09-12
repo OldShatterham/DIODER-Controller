@@ -5,11 +5,11 @@ Code for controlling the IKEA DIODER LED strip with an Arduino and some extra ha
 This program is only meant for learning purposes, but you can use it anyway you want. I take no responsibility for any damage you do to your LED strip, Arduino board and/or other equipment.
 This software is provided "as is" with no without any express or implied warranty of any kind.  
   
-Use the *_PIN fields to set the output/input pins.
+Use the *_PIN fields (at the beginning of the code) to set the output/input pins.
 ---
 ###Serial connection:
 Baud rate is 19200, 8 data bits, 1 stop bit, no parity, no flow control; commands have to end with a carriage return character (ASCII code 13) to be processed.  
-If you are using an Arduino Micro or Leonardo (or just want to use other serial pins if your board supports this, e.g. Arduino Mega 2560) you have to set SERIALCON to 'Serial1'; otherwise, set it to 'Serial'.  
+If you are using an Arduino Micro or Leonardo and want to use the onboard serial pins (or just want to use other serial pins if your board supports this, e.g. Arduino Mega 2560) you have to set SERIAL1ENABLED to 'true'; otherwise, set it to 'false'.  
   
 Available commands are:  
 	* **help**									-	Prints out a list of all commands  

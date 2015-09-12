@@ -11,7 +11,7 @@
 //=====================================================
 
 //Serial connection:
-#define SERIALCON              Serial1  //Use 'Serial1' if you want to use the TX and RX pins on a Micro or Leonardo, otherwise use 'Serial'
+#define SERIAL1ENABLED            true  //Set to 'true' if you want to use the second Serial connection provided on some boards (e.g. Mega, Micro, Leonardo). Use this if you want to use TX and RX pins on a Micro or Leonardo.
 #define BAUDRATE                 19200  //Standard: 19200
 
 //Pin config:
@@ -37,7 +37,7 @@ boolean selfChangingEnabled = true;
 boolean fadingEnabled = false;
 
 //Serial connection stuff:
-boolean serialAvailable = false;
+boolean dedSerialAvailable = false;
 String command = "";
 String lastCommands[15];
 int connectionLost;
@@ -79,7 +79,10 @@ void setup() {
   analogWrite(13, 255);
   
   //Set up serial:
-  SERIALCON.begin(BAUDRATE);  //Baud rate
+  Serial.begin(BAUDRATE);  //Baud rate
+  if(SERIAL1ENABLED) {
+    Serial1.begin(BAUDRATE);  //Baud rate
+  }
   
   //Set up the system:
   pinMode(SERIAL_AVAILABLE_PIN, INPUT);
@@ -157,8 +160,8 @@ void loop() {
       //analogWrite(13, read_value);
       fading_value_1 = read_value / 4;
       if(debugMode) {
-        SERIALCON.print("[LISTENER] Fading value 1 changed to: ");
-        SERIALCON.println(fading_value_1);
+        SerialPrint("[LISTENER] Fading value 1 changed to: ");
+        SerialPrintln(fading_value_1);
       }
       somethingChanged = true;
     }
@@ -168,45 +171,53 @@ void loop() {
       //analogWrite(13, read_value);
       fading_value_2 = read_value / 4;
       if(debugMode) {
-        SERIALCON.print("[LISTENER] Fading value 2 changed to: ");
-        SERIALCON.println(fading_value_2);
+        SerialPrint("[LISTENER] Fading value 2 changed to: ");
+        SerialPrintln(fading_value_2);
       }
       somethingChanged = true;
     }
   }
   
   //Meta stuff:
-  if(digitalRead(SERIAL_AVAILABLE_PIN) == HIGH &&  serialAvailable == false) {
-    serialAvailable = true;
+  if(digitalRead(SERIAL_AVAILABLE_PIN) == HIGH &&  dedSerialAvailable == false) {
+    dedSerialAvailable = true;
+    
+    SerialPrintln();
     delay(400);
-    for(int i = 0; i < 3; i++)
-      SERIALCON.println();
-    SERIALCON.println("Serial connection established");
-    SERIALCON.println("Welcome!");
-    SERIALCON.println();
+    //Print a "little" welcome message
+    Serial1.println("==============================================");
+    Serial1.print("|| ");
+    SerialPrint("Dedicated Serial connection established.");
+    Serial.println();
+    Serial1.println(" ||");
+    Serial1.println("||                                          ||");
+    Serial1.println("||                Welcome!                  ||");
+    Serial1.println("==============================================");
+    SerialPrintln();
     connectionLost = 0;
   } else {
-    if(digitalRead(SERIAL_AVAILABLE_PIN) == LOW && serialAvailable == true) {
+    if(digitalRead(SERIAL_AVAILABLE_PIN) == LOW && dedSerialAvailable == true) {
       connectionLost++;
       if(debugMode) {
-        SERIALCON.print("Connection lost (");
-        SERIALCON.print(connectionLost);
-        SERIALCON.println(" times in total)!");
+        SerialPrint("Dedicated Serial connection lost (");
+        SerialPrint(connectionLost);
+        SerialPrintln(" times in total)!");
       }
       if(connectionLost > 25) {
-        serialAvailable = false;
-        signalError("Serial connection lost!");
+        dedSerialAvailable = false;
+        signalError("Dedicated Serial connection lost!");
       }
     }
   }
-  if(serialAvailable) {
-    checkSerial();
+  if(dedSerialAvailable) {
+    checkSerial1();
   }
+  checkSerial();
   delay(10);
 }
 
 /**
- * This function parses any input via serial. Own behaviors have to be coded in this function.
+ * This function checks the Serial connection for input.
  */
 void checkSerial() {
   static int MAXLENGTH = 50;
@@ -218,16 +229,16 @@ void checkSerial() {
   
   //Get chars of recieved data:
   int index = 0;  
-  while(SERIALCON.available() > 0 && index < MAXLENGTH) {
-    char inChar = SERIALCON.read();
+  while(Serial.available() > 0 && index < MAXLENGTH) {
+    char inChar = Serial.read();
     recData[index] = inChar;
     index++;
         
     if(debugMode) {
-      SERIALCON.print("    Processed char '");
-      SERIALCON.print(inChar);
-      SERIALCON.print("', ASCII value: ");
-      SERIALCON.println((int)inChar);
+      SerialPrint("    Processed char '");
+      SerialPrint(inChar);
+      SerialPrint("', ASCII value: ");
+      SerialPrintln((int)inChar);
     }
   }
   
@@ -238,8 +249,8 @@ void checkSerial() {
       command += currentChar;
       
       if(debugMode) {
-        SERIALCON.print("Current value of 'command': ");
-        SERIALCON.println(command);
+        SerialPrint("Current value of 'command': ");
+        SerialPrintln(command);
       }
     }
   }
@@ -249,99 +260,196 @@ void checkSerial() {
   if(lastChar == 13) {
     //Remove last character in command as it is hindering:
     command.remove(command.length() - 1);
-    
-    SERIALCON.print("[INPUT] ");
-    SERIALCON.println(command);
-    SERIALCON.println();
-    
-    //Cycle thorugh all commands:
-    String commands[] = {"help","debugMode","toggleSelfChanging","toggleFading","setColor([INT],[INT],[INT])","setSEffect([STRING],[INT],[DOUBLE])"};
-    //  help
-    if(command == "help") {
-      for(int i = 0; i < (sizeof(commands) / sizeof(String)); i++) {
-        SERIALCON.print("    ");
-        SERIALCON.println(commands[i]);
-      }
-    }
-    //  debugMode
-    if(command == "debugMode") {
-      if(debugMode) {
-        debugMode = false;
-        SERIALCON.println("Disabled debug mode!");
-      } else {
-        debugMode = true;
-        SERIALCON.println("Enabled debug mode!");
-      }
-    }
-    //  toggleSelfChanging
-    if(command == "toggleSelfChanging") {
-      if(selfChangingEnabled) {
-        selfChangingEnabled = false;
-        SERIALCON.println("Disabled self changing effects!");
-      } else {
-        selfChangingEnabled = true;
-        SERIALCON.println("Enabled self changing effects!");
-      }
-    }
-    //  toggleFading
-    if(command == "toggleFading") {
-      if(fadingEnabled) {
-        fadingEnabled = false;
-        SERIALCON.println("Disabled fading!");
-      } else {
-        fadingEnabled = true;
-        SERIALCON.println("Enabled fading!");
-      }
-    }
-    //  setColor(int,int,int)
-    if(command.startsWith("setColor(") && command.endsWith(")")) {
-      String rString = command.substring(9, command.indexOf(","));
-      String gString = command.substring(command.indexOf(",")+1, command.indexOf(",", command.indexOf(",")+1));
-      String bString = command.substring(command.indexOf(",", command.indexOf(",")+1)+1, command.indexOf(")"));
-      
-      //Cast to int:
-      int rValue = (int)rString.toInt();
-      int gValue = (int)gString.toInt();
-      int bValue = (int)bString.toInt();
-      
-      SERIALCON.print("Setting color to '");
-      SERIALCON.print(rValue);
-      SERIALCON.print("', '");
-      SERIALCON.print(gValue);
-      SERIALCON.print("', '");
-      SERIALCON.print(bValue);
-      SERIALCON.println("'!");
-      
-      setColor(rValue, gValue, bValue);
-    }
-    //  setSEffect(String,int,double)
-    if(command.startsWith("setSEffect(") && command.endsWith(")")) {
-      String func_String = command.substring(12, command.indexOf(',')-1);
-      String max_ts_String = command.substring(command.indexOf(",")+1, command.indexOf(",", command.indexOf(",")+1));
-      String rel_speed_String = command.substring(command.indexOf(",", command.indexOf(",")+1)+1, command.indexOf(")"));
-      
-      //Cast to respective types:
-      String newFunc = func_String;
-      int newMax_ts = (int)max_ts_String.toInt();
-      
-      char buffer[rel_speed_String.length()];
-      rel_speed_String.toCharArray(buffer,rel_speed_String.length()+1);
-      double newRel_speed = atof(buffer);
-      
-      SERIALCON.print("Setting self-changing effect to '");
-      SERIALCON.print(newFunc);
-      SERIALCON.print("', with max value of '");
-      SERIALCON.print(newMax_ts);
-      SERIALCON.print("' and speed of ");
-      SERIALCON.print(newRel_speed);
-      SERIALCON.println("!");
-      
-      setSEffect(newFunc, newMax_ts, newRel_speed);
-    }
-    
+    ParseCommand("SERIAL");
     //Reset command:
     command = "";
   }
+}
+/**
+ * This function checks the Serial1 connection for input.
+ */
+void checkSerial1() {
+  static int MAXLENGTH = 50;
+  char recData[MAXLENGTH];
+  
+  //Clear recData[]:
+  for(int i = 0; i < MAXLENGTH; i++)
+    recData[i] = 0;
+  
+  //Get chars of recieved data:
+  int index = 0;  
+  while(Serial1.available() > 0 && index < MAXLENGTH) {
+    char inChar = Serial1.read();
+    recData[index] = inChar;
+    index++;
+        
+    if(debugMode) {
+      SerialPrint("    Processed char '");
+      SerialPrint(inChar);
+      SerialPrint("', ASCII value: ");
+      SerialPrintln((int)inChar);
+    }
+  }
+  
+  //Store chars in one String
+  for(int i = 0; i < index; i++) {
+    if(recData[i] != NULL) {
+      char currentChar = recData[i];
+      command += currentChar;
+      
+      if(debugMode) {
+        SerialPrint("Current value of 'command': ");
+        SerialPrintln(command);
+      }
+    }
+  }
+  
+  //If command ends with a carriage return character (ASCII value 13)
+  int lastChar = (int)(command.charAt(command.length() - 1));
+  if(lastChar == 13) {
+    //Remove last character in command as it is hindering:
+    command.remove(command.length() - 1);
+    ParseCommand("SERIAL1");
+    //Reset command:
+    command = "";
+  }
+}
+
+/**
+ * This function parses any input via serial. Own behaviors have to be coded in this function.
+ */
+void ParseCommand(String sender) {
+  //Echo command
+  SerialPrintln();
+  SerialPrint("[");
+  SerialPrint(sender);
+  SerialPrint("] ");
+  SerialPrintln(command);
+  
+  //Cycle thorugh all commands:
+  String commands[] = {"help","debugMode","toggleSelfChanging","toggleFading","setColor([INT],[INT],[INT])","setSEffect([STRING],[INT],[DOUBLE])"};
+  //  help
+  if(command == "help") {
+    for(int i = 0; i < (sizeof(commands) / sizeof(String)); i++) {
+      SerialPrint("    ");
+      SerialPrintln(commands[i]);
+    }
+  }
+  //  debugMode
+  if(command == "debugMode") {
+    if(debugMode) {
+      debugMode = false;
+      SerialPrintln("Disabled debug mode!");
+    } else {
+      debugMode = true;
+      SerialPrintln("Enabled debug mode!");
+    }
+  }
+  //  toggleSelfChanging
+  if(command == "toggleSelfChanging") {
+    if(selfChangingEnabled) {
+      selfChangingEnabled = false;
+      SerialPrintln("Disabled self changing effects!");
+    } else {
+      selfChangingEnabled = true;
+      SerialPrintln("Enabled self changing effects!");
+    }
+  }
+  //  toggleFading
+  if(command == "toggleFading") {
+    if(fadingEnabled) {
+      fadingEnabled = false;
+      SerialPrintln("Disabled fading!");
+    } else {
+      fadingEnabled = true;
+      SerialPrintln("Enabled fading!");
+    }
+  }
+  //  setColor(int,int,int)
+  if(command.startsWith("setColor(") && command.endsWith(")")) {
+    String rString = command.substring(9, command.indexOf(","));
+    String gString = command.substring(command.indexOf(",")+1, command.indexOf(",", command.indexOf(",")+1));
+    String bString = command.substring(command.indexOf(",", command.indexOf(",")+1)+1, command.indexOf(")"));
+    
+    //Cast to int:
+    int rValue = (int)rString.toInt();
+    int gValue = (int)gString.toInt();
+    int bValue = (int)bString.toInt();
+    
+    SerialPrint("Setting color to '");
+    SerialPrint(rValue);
+    SerialPrint("', '");
+    SerialPrint(gValue);
+    SerialPrint("', '");
+    SerialPrint(bValue);
+    SerialPrintln("'!");
+    
+    setColor(rValue, gValue, bValue);
+  }
+  //  setSEffect(String,int,double)
+  if(command.startsWith("setSEffect(") && command.endsWith(")")) {
+    String func_String = command.substring(12, command.indexOf(',')-1);
+    String max_ts_String = command.substring(command.indexOf(",")+1, command.indexOf(",", command.indexOf(",")+1));
+    String rel_speed_String = command.substring(command.indexOf(",", command.indexOf(",")+1)+1, command.indexOf(")"));
+    
+    //Cast to respective types:
+    String newFunc = func_String;
+    int newMax_ts = (int)max_ts_String.toInt();
+    
+    char buffer[rel_speed_String.length()];
+    rel_speed_String.toCharArray(buffer,rel_speed_String.length()+1);
+    double newRel_speed = atof(buffer);
+    
+    SerialPrint("Setting self-changing effect to '");
+    SerialPrint(newFunc);
+    SerialPrint("', with max value of '");
+    SerialPrint(newMax_ts);
+    SerialPrint("' and speed of ");
+    SerialPrint(newRel_speed);
+    SerialPrintln("!");
+    
+    setSEffect(newFunc, newMax_ts, newRel_speed);
+  }
+}
+
+/**
+ * Several functions which replace the hardcoded functions for printing out stuff over Serial.
+ */
+void SerialPrint(String message) {
+  if(SERIAL1ENABLED) {
+    Serial1.print(message);
+  }
+
+  Serial.print(message);
+}
+void SerialPrint(int message) {
+  if(SERIAL1ENABLED) {
+    Serial1.print(message);
+  }
+
+  Serial.print(message);
+}
+
+void SerialPrintln(String message) {
+  if(SERIAL1ENABLED) {
+    Serial1.println(message);
+  }
+
+  Serial.println(message);
+}
+void SerialPrintln(int message) {
+  if(SERIAL1ENABLED) {
+    Serial1.println(message);
+  }
+
+  Serial.println(message);
+}
+void SerialPrintln() {
+  if(SERIAL1ENABLED) {
+    Serial1.println();
+  }
+
+  Serial.println();
 }
 
 /**
@@ -351,13 +459,13 @@ void checkSerial() {
  */
 void signalError(String message) {
   //Print error message to Serial:
-  SERIALCON.print("[ERROR] An error occured");
+  SerialPrint("[ERROR] An error occured");
   if(message != "") {
-    SERIALCON.print(" (");
-    SERIALCON.print(message);
-    SERIALCON.print(")");
+    SerialPrint(" (");
+    SerialPrint(message);
+    SerialPrint(")");
   }
-  SERIALCON.print("!");
+  SerialPrint("!");
   
   //Blink LED 13 (onboard) 5 times
   for(int i = 0; i < 5; i++) {
@@ -366,7 +474,7 @@ void signalError(String message) {
     analogWrite(13, 0);
     delay(100);
   }
-  SERIALCON.println();
+  SerialPrintln();
 }
 
 /**
@@ -388,13 +496,13 @@ void setColor(int r, int g, int b) {
     analogWrite(BLUE_PIN, blue);
     
     if(debugMode) {
-      SERIALCON.print("Set color to ");
-      SERIALCON.print(red);
-      SERIALCON.print(", ");
-      SERIALCON.print(green);
-      SERIALCON.print(", ");
-      SERIALCON.print(blue);
-      SERIALCON.println("!");
+      SerialPrint("Set color to ");
+      SerialPrint(red);
+      SerialPrint(", ");
+      SerialPrint(green);
+      SerialPrint(", ");
+      SerialPrint(blue);
+      SerialPrintln("!");
     }
   } else
     signalError("setColor parameters are not between 0 and 255");
@@ -409,16 +517,13 @@ void setColor(int r, int g, int b) {
  *                          every 10 ms
  */
 void setSEffect(String func, int max_ts, double rel_speed) {
-  if(serialAvailable)
-    SERIALCON.println("Trying to change self-changing effect");
+  SerialPrintln("Trying to change self-changing effect");
   sEf_func = func;
   sEf_max_ts = max_ts;
   sEf_rel_speed = rel_speed;
   
   sEf_timestamp = 0;
-
-  if(serialAvailable)
-    SERIALCON.println("Changed self-changing effect");
+  SerialPrintln("Changed self-changing effect");
 }
 
 
@@ -472,8 +577,8 @@ void setSEffect(String func, int max_ts, double rel_speed) {
    int sinus_value = (int)(FULL_BRIGHTNESS * (0.5 + sin((2.0 * 3.14159 * (float)interval) / 1000.0) / 2.0));
    
    if(debugMode) {
-     SERIALCON.print("Calculated value for breathing effect: ");
-     SERIALCON.println(sinus_value);
+     SerialPrint("Calculated value for breathing effect: ");
+     SerialPrintln(sinus_value);
    }
    setColor(sinus_value, sinus_value, sinus_value);
  }
